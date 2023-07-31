@@ -9,7 +9,7 @@ const (
 	NotInRoom      = "NOT_IN_ROOM"
 )
 
-const CreateRoomTime = 5
+const CreateRoomTime = 30
 
 const WinnerPrize = 30
 const SecondPrize = 20
