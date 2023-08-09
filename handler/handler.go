@@ -90,15 +90,15 @@ func (a *Handler) Websocket() http.Handler {
 		defer a.conn.Close()
 
 		clientId := make(chan string)
-		gameOver := make(chan bool)
+		guessRoomId := make(chan string)
 
 		a.handleJoinedRoomEvent(a.conn, clientId)
-		a.handleGameOverEvent(a.conn, gameOver)
-		a.handleCommand(a.conn, clientId, gameOver)
+		a.handleGameOverEvent(a.conn, guessRoomId)
+		a.handleCommand(a.conn, clientId, guessRoomId)
 	})
 }
 
-func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, gameOver chan bool) {
+func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, guessRoomId chan string) {
 	for {
 		_, b, err := conn.ReadMessage()
 		if err != nil {
@@ -223,10 +223,7 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 				continue
 			}
 			a.Unlock()
-			allGuessDone := a.service.AllGuessDone(guessRequest.RoomId)
-			if allGuessDone {
-				gameOver <- allGuessDone
-			}
+			guessRoomId <- guessRequest.RoomId
 		default:
 			log.Println("Not supported command, ", commandRequest.Cmd)
 		}
@@ -276,33 +273,43 @@ func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan stri
 	}()
 }
 
-func (a *Handler) handleGameOverEvent(conn *websocket.Conn, gameOver chan bool) {
+func (a *Handler) handleGameOverEvent(conn *websocket.Conn, guessRoomId chan string) {
+	tickerCreateRoomTime := time.NewTicker(1 * time.Second)
+	done := make(chan bool)
 	go func() {
-		<-gameOver
-		a.service.GameOver()
-		gameResults := a.service.GetGameResults()
-		ranking := make([]dto.Ranking, 0)
-		for _, r := range gameResults.Rankings {
-			ranking = append(ranking, dto.Ranking{
-				Player:      r.Player.ID,
-				Rank:        r.Rank,
-				Guess:       r.Player.Guess,
-				DeltaTrophy: r.DeltaTrophy,
-			})
+		roomId := <-guessRoomId
+		for {
+			select {
+			case <-done:
+				return
+			case <-tickerCreateRoomTime.C:
+				if a.service.AllGuessDone(roomId) {
+					a.service.GameOver()
+					gameResults := a.service.GetGameResults()
+					ranking := make([]dto.Ranking, 0)
+					for _, r := range gameResults.Rankings {
+						ranking = append(ranking, dto.Ranking{
+							Player:      r.Player.ID,
+							Rank:        r.Rank,
+							Guess:       r.Player.Guess,
+							DeltaTrophy: r.DeltaTrophy,
+						})
+					}
+					res := &dto.WebsocketEventResponse{
+						Event:    "gameOver",
+						Secret:   gameResults.Secret,
+						Rankings: ranking,
+					}
+					databytes, err := json.Marshal(res)
+					a.Lock()
+					if err = conn.WriteMessage(websocket.TextMessage, databytes); err != nil {
+						log.Println("Could not write message to websocket, error", err)
+					}
+					a.Unlock()
+					done <- true
+				}
+			}
 		}
-		res := &dto.WebsocketEventResponse{
-			Event:    "gameOver",
-			Secret:   gameResults.Secret,
-			Rankings: ranking,
-		}
-		databytes, err := json.Marshal(res)
-		a.Lock()
-		if err = conn.WriteMessage(websocket.TextMessage, databytes); err != nil {
-			log.Println("Could not write message to websocket, error", err)
-			a.Unlock()
-			return
-		}
-		a.Unlock()
 	}()
 }
 

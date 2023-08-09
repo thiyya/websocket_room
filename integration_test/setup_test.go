@@ -76,18 +76,22 @@ func prepareGuess(c C) (*websocket.Conn, *httptest.Server) {
 	p1 := &model.Player{
 		ID:       "1",
 		NickName: "a",
+		Guess:    -1,
 	}
 	p2 := &model.Player{
 		ID:       "2",
 		NickName: "b",
+		Guess:    -1,
 	}
 	p3 := &model.Player{
 		ID:       "3",
 		NickName: "c",
+		Guess:    -1,
 	}
 	p4 := &model.Player{
 		ID:       "4",
 		NickName: "d",
+		Guess:    -1,
 	}
 	players := map[string]*model.Player{}
 	players["1"] = p1
