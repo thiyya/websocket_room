@@ -71,6 +71,7 @@ func (a *repo) Register(nickName string) (string, error) {
 		ID:       uuid,
 		NickName: nickName,
 		Score:    0,
+		Guess:    -1,
 	}
 	a.mutex.Unlock()
 	return uuid, nil

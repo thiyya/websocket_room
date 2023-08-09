@@ -138,7 +138,7 @@ func (a *Service) GameOver() {
 func (a *Service) AllGuessDone(roomId string) bool {
 	room, _ := a.repo.GetRoomById(roomId)
 	for _, player := range room.Players {
-		if player.Guess == 0 {
+		if player.Guess == -1 {
 			return false
 		}
 	}
