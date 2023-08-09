@@ -269,6 +269,7 @@ func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan stri
 						return
 					}
 					a.Unlock()
+					done <- true
 				}
 			}
 		}

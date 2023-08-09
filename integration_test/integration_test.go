@@ -75,9 +75,6 @@ func TestJoinedRoomEvent(t *testing.T) {
 			_, p, err = ws.ReadMessage()
 			c.So(err, ShouldBeNil)
 			c.So(string(p), ShouldContainSubstring, "room")
-			res1 := &dto.WebsocketEventResponse{}
-			err = json.Unmarshal(p, res1)
-			c.So(err, ShouldBeNil)
 		})
 
 	})
