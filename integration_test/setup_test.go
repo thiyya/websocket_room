@@ -138,15 +138,42 @@ func prepareGameOver(c C) (*websocket.Conn, *httptest.Server) {
 		ID:       "3",
 		NickName: "c",
 	}
-
+	p4 := &model.Player{
+		ID:       "4",
+		NickName: "a",
+		Score:    0,
+		Guess:    5,
+		Diff:     2,
+		Rank:     0,
+	}
+	p5 := &model.Player{
+		ID:       "5",
+		NickName: "b",
+		Score:    0,
+		Guess:    4,
+		Diff:     1,
+		Rank:     0,
+	}
+	p6 := &model.Player{
+		ID:       "6",
+		NickName: "c",
+	}
 	players := map[string]*model.Player{}
 	players["1"] = p1
 	players["2"] = p2
 	players["3"] = p3
+	players["4"] = p4
+	players["5"] = p5
+	players["6"] = p6
 	rooms := map[string]*model.Room{}
 	rooms["room1"] = &model.Room{
 		ID:      "room1",
 		Players: []*model.Player{p1, p2, p3},
+		Secret:  3,
+	}
+	rooms["room2"] = &model.Room{
+		ID:      "room2",
+		Players: []*model.Player{p4, p5, p6},
 		Secret:  3,
 	}
 	repo := repo.NewRepository(

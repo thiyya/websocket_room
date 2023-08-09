@@ -284,8 +284,8 @@ func (a *Handler) handleGameOverEvent(conn *websocket.Conn, guessRoomId chan str
 				return
 			case <-tickerCreateRoomTime.C:
 				if a.service.AllGuessDone(roomId) {
-					a.service.GameOver()
-					gameResults := a.service.GetGameResults()
+					a.service.GameOver(roomId)
+					gameResults := a.service.GetGameResults(roomId)
 					ranking := make([]dto.Ranking, 0)
 					for _, r := range gameResults.Rankings {
 						ranking = append(ranking, dto.Ranking{

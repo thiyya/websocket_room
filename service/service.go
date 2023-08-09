@@ -106,32 +106,38 @@ func (a *Service) CreateRooms() map[string]*model.Room {
 	return a.repo.GetAllRooms()
 }
 
-func (a *Service) GetGameResults() model.GameResult {
+func (a *Service) GetGameResults(roomId string) model.GameResult {
 	res := model.GameResult{}
 	for _, r := range a.repo.GetAllRooms() {
-		res.Secret = r.Secret
-		rankings := make([]model.Ranking, 0)
-		for _, player := range r.Players {
-			rankings = append(rankings, model.Ranking{
-				Player:      *player,
-				Rank:        player.Rank,
-				DeltaTrophy: player.Score,
-			})
+		if roomId == r.ID {
+			res.Secret = r.Secret
+			rankings := make([]model.Ranking, 0)
+			for _, player := range r.Players {
+				rankings = append(rankings, model.Ranking{
+					Player:      *player,
+					Rank:        player.Rank,
+					DeltaTrophy: player.Score,
+				})
+			}
+			res.Rankings = rankings
+			break
 		}
-		res.Rankings = rankings
 	}
 	return res
 }
-func (a *Service) GameOver() {
+func (a *Service) GameOver(roomId string) {
 	rooms := a.repo.GetAllRooms()
 	for _, room := range rooms {
-		sort.Sort(sortByDiff(room.Players))
-		room.Players[0].Score = global.WinnerPrize
-		room.Players[0].Rank = 1
-		room.Players[1].Score = global.SecondPrize
-		room.Players[1].Rank = 2
-		room.Players[2].Score = global.Loser
-		room.Players[2].Rank = 3
+		if room.ID == roomId {
+			sort.Sort(sortByDiff(room.Players))
+			room.Players[0].Score = global.WinnerPrize
+			room.Players[0].Rank = 1
+			room.Players[1].Score = global.SecondPrize
+			room.Players[1].Rank = 2
+			room.Players[2].Score = global.Loser
+			room.Players[2].Rank = 3
+			break
+		}
 	}
 }
 
