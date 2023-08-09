@@ -13,7 +13,7 @@ import (
 
 func TestJoinCommand(t *testing.T) {
 	Convey("Join", t, func(c C) {
-		ws, s := PrepareJoin(c)
+		ws, s := prepareJoin(c)
 		defer ws.Close()
 		defer s.Close()
 		Convey("Join Successfully", func(c C) {
@@ -57,7 +57,7 @@ func TestJoinCommand(t *testing.T) {
 }
 func TestJoinedRoomEvent(t *testing.T) {
 	Convey("Join", t, func(c C) {
-		ws, s := PrepareJoinedRoom(c)
+		ws, s := prepareJoinedRoom(c)
 		defer ws.Close()
 		defer s.Close()
 		Convey("JoinedRoomEvent Successfully", func(c C) {
@@ -84,7 +84,7 @@ func TestJoinedRoomEvent(t *testing.T) {
 }
 func TestGuessCommand(t *testing.T) {
 	Convey("Guess", t, func(c C) {
-		ws, s := PrepareGuess(c)
+		ws, s := prepareGuess(c)
 		defer ws.Close()
 		defer s.Close()
 		Convey("Guess Successfully", func(c C) {
@@ -150,7 +150,7 @@ func TestGuessCommand(t *testing.T) {
 }
 func TestGameOverEvent(t *testing.T) {
 	Convey("GameOver", t, func(c C) {
-		ws, s := PrepareGameOver(c)
+		ws, s := prepareGameOver(c)
 		defer ws.Close()
 		defer s.Close()
 		Convey("GameOver Successfully", func(c C) {

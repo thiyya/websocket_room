@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func PrepareJoin(c C) (*websocket.Conn, *httptest.Server) {
+func prepareJoin(c C) (*websocket.Conn, *httptest.Server) {
 	players := map[string]*model.Player{}
 	players["1"] = &model.Player{
 		ID:       "1",
@@ -39,7 +39,7 @@ func PrepareJoin(c C) (*websocket.Conn, *httptest.Server) {
 	c.So(err, ShouldBeNil)
 	return ws, s
 }
-func PrepareJoinedRoom(c C) (*websocket.Conn, *httptest.Server) {
+func prepareJoinedRoom(c C) (*websocket.Conn, *httptest.Server) {
 	p1 := &model.Player{
 		ID:       "1",
 		NickName: "a",
@@ -72,7 +72,7 @@ func PrepareJoinedRoom(c C) (*websocket.Conn, *httptest.Server) {
 	c.So(err, ShouldBeNil)
 	return ws, s
 }
-func PrepareGuess(c C) (*websocket.Conn, *httptest.Server) {
+func prepareGuess(c C) (*websocket.Conn, *httptest.Server) {
 	p1 := &model.Player{
 		ID:       "1",
 		NickName: "a",
@@ -113,7 +113,7 @@ func PrepareGuess(c C) (*websocket.Conn, *httptest.Server) {
 	c.So(err, ShouldBeNil)
 	return ws, s
 }
-func PrepareGameOver(c C) (*websocket.Conn, *httptest.Server) {
+func prepareGameOver(c C) (*websocket.Conn, *httptest.Server) {
 	p1 := &model.Player{
 		ID:       "1",
 		NickName: "a",

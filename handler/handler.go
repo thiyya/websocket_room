@@ -9,11 +9,14 @@ import (
 	"rooms/dto"
 	"rooms/global"
 	"rooms/service"
+	"sync"
 	"time"
 )
 
 type Handler struct {
 	service *service.Service
+	conn    *websocket.Conn
+	sync.Mutex
 }
 
 func NewHandler(options ...func(*Handler)) *Handler {
@@ -83,14 +86,15 @@ func (a *Handler) Websocket() http.Handler {
 			return
 		}
 		log.Println("Websocket Connection established.")
-		defer conn.Close()
+		a.conn = conn
+		defer a.conn.Close()
 
 		clientId := make(chan string)
 		gameOver := make(chan bool)
 
-		a.handleJoinedRoomEvent(conn, clientId)
-		a.handleGameOverEvent(conn, gameOver)
-		a.handleCommand(conn, clientId, gameOver)
+		a.handleJoinedRoomEvent(a.conn, clientId)
+		a.handleGameOverEvent(a.conn, gameOver)
+		a.handleCommand(a.conn, clientId, gameOver)
 	})
 }
 
@@ -106,9 +110,11 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 				Error: global.InvalidRequest,
 			}
 			b, err := json.Marshal(res)
+			a.Lock()
 			if err = conn.WriteMessage(websocket.TextMessage, b); err != nil {
 				log.Println("Could not write message to websocket, error", err)
 			}
+			a.Unlock()
 			continue
 		}
 		commandRequest := &dto.WebSocketRequest{}
@@ -119,9 +125,11 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 				Error: global.InvalidRequest,
 			}
 			b, err := json.Marshal(res)
+			a.Lock()
 			if err = conn.WriteMessage(websocket.TextMessage, b); err != nil {
 				log.Println("Could not write message to websocket, error", err)
 			}
+			a.Unlock()
 			continue
 		}
 
@@ -136,9 +144,11 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 					Error: global.InvalidParams,
 				}
 				b, err := json.Marshal(res)
+				a.Lock()
 				if err = conn.WriteMessage(websocket.TextMessage, b); err != nil {
 					log.Println("Could not write message to websocket, error", err)
 				}
+				a.Unlock()
 				continue
 			}
 			err = a.service.Join(joinRequest.Id)
@@ -149,9 +159,11 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 					Error: err.Error(),
 				}
 				b, err := json.Marshal(res)
+				a.Lock()
 				if err = conn.WriteMessage(websocket.TextMessage, b); err != nil {
 					log.Println("Could not write message to websocket, error", err)
 				}
+				a.Unlock()
 				continue
 			}
 			res := dto.WebsocketCommandResponse{
@@ -159,10 +171,13 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 				Reply: "waiting",
 			}
 			databytes, err := json.Marshal(res)
+			a.Lock()
 			if err = conn.WriteMessage(websocket.TextMessage, databytes); err != nil {
 				log.Println("Could not write message to websocket, error", err)
+				a.Unlock()
 				continue
 			}
+			a.Unlock()
 			clientId <- joinRequest.Id
 		case "guess":
 			guessRequest := &dto.GuessRequest{}
@@ -174,9 +189,11 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 					Error: global.InvalidParams,
 				}
 				b, err := json.Marshal(res)
+				a.Lock()
 				if err = conn.WriteMessage(websocket.TextMessage, b); err != nil {
 					log.Println("Could not write message to websocket, error", err)
 				}
+				a.Unlock()
 				continue
 			}
 			err = a.service.Guess(guessRequest.Id, guessRequest.RoomId, guessRequest.Data)
@@ -187,9 +204,11 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 					Error: err.Error(),
 				}
 				b, err := json.Marshal(res)
+				a.Lock()
 				if err = conn.WriteMessage(websocket.TextMessage, b); err != nil {
 					log.Println("Could not write message to websocket, error", err)
 				}
+				a.Unlock()
 				continue
 			}
 			res := dto.WebsocketCommandResponse{
@@ -197,10 +216,13 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, game
 				Reply: "guessReceived",
 			}
 			databytes, err := json.Marshal(res)
+			a.Lock()
 			if err = conn.WriteMessage(websocket.TextMessage, databytes); err != nil {
 				log.Println("Could not write message to websocket, error", err)
+				a.Unlock()
 				continue
 			}
+			a.Unlock()
 			allGuessDone := a.service.AllGuessDone(guessRequest.RoomId)
 			if allGuessDone {
 				gameOver <- allGuessDone
@@ -221,7 +243,9 @@ func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan stri
 			case <-done:
 				return
 			case <-tickerCreateRoomTime.C:
+				a.Lock()
 				rooms := a.service.CreateRooms()
+				a.Unlock()
 				roomId := ""
 				for _, room := range rooms {
 					for _, player := range room.Players {
@@ -231,16 +255,20 @@ func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan stri
 						}
 					}
 				}
+
 				if len(roomId) > 0 {
 					res := &dto.WebsocketEventResponse{
 						Event: "joinedRoom",
 						Room:  roomId,
 					}
 					databytes, err := json.Marshal(res)
+					a.Lock()
 					if err = conn.WriteMessage(websocket.TextMessage, databytes); err != nil {
 						log.Println("Could not write message to websocket, error", err)
+						a.Unlock()
 						return
 					}
+					a.Unlock()
 				}
 			}
 		}
@@ -267,10 +295,13 @@ func (a *Handler) handleGameOverEvent(conn *websocket.Conn, gameOver chan bool) 
 			Rankings: ranking,
 		}
 		databytes, err := json.Marshal(res)
+		a.Lock()
 		if err = conn.WriteMessage(websocket.TextMessage, databytes); err != nil {
 			log.Println("Could not write message to websocket, error", err)
+			a.Unlock()
 			return
 		}
+		a.Unlock()
 	}()
 }
 
