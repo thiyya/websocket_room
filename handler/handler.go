@@ -91,8 +91,10 @@ func (a *Handler) Websocket() http.Handler {
 
 		clientId := make(chan string)
 		guessRoomId := make(chan string)
+		startTimeoutId := make(chan string)
 
-		a.handleJoinedRoomEvent(a.conn, clientId)
+		a.handleJoinedRoomEvent(a.conn, clientId, startTimeoutId)
+		a.handleStartTimeOutEvent(startTimeoutId)
 		a.handleGameOverEvent(a.conn, guessRoomId)
 		a.handleCommand(a.conn, clientId, guessRoomId)
 	})
@@ -230,7 +232,7 @@ func (a *Handler) handleCommand(conn *websocket.Conn, clientId chan string, gues
 	}
 }
 
-func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan string) {
+func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan string, startTimeoutId chan string) {
 	tickerCreateRoomTime := time.NewTicker(global.CreateRoomTime * time.Second)
 	done := make(chan bool)
 	go func() {
@@ -266,15 +268,34 @@ func (a *Handler) handleJoinedRoomEvent(conn *websocket.Conn, clientId chan stri
 						return
 					}
 					a.Unlock()
+					startTimeoutId <- id
 					done <- true
 				}
 			}
 		}
 	}()
 }
+func (a *Handler) handleStartTimeOutEvent(startTimeoutId chan string) {
+	tickerCreateRoomTime := time.NewTicker(global.TimeoutTime * time.Second)
+	done := make(chan bool)
+	defer close(done)
+
+	go func() {
+		id := <-startTimeoutId
+		for {
+			select {
+			case <-done:
+				return
+			case <-tickerCreateRoomTime.C:
+				a.service.CheckGuess(id)
+				done <- true
+			}
+		}
+	}()
+}
 
 func (a *Handler) handleGameOverEvent(conn *websocket.Conn, guessRoomId chan string) {
-	tickerCreateRoomTime := time.NewTicker(1 * time.Second)
+	tickerGameOverTime := time.NewTicker(1 * time.Second)
 	done := make(chan bool)
 	go func() {
 		roomId := <-guessRoomId
@@ -282,7 +303,7 @@ func (a *Handler) handleGameOverEvent(conn *websocket.Conn, guessRoomId chan str
 			select {
 			case <-done:
 				return
-			case <-tickerCreateRoomTime.C:
+			case <-tickerGameOverTime.C:
 				if a.service.AllGuessDone(roomId) {
 					a.service.GameOver(roomId)
 					gameResults := a.service.GetGameResults(roomId)

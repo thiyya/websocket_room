@@ -10,6 +10,7 @@ const (
 )
 
 const CreateRoomTime = 30
+const TimeoutTime = 20
 
 const WinnerPrize = 30
 const SecondPrize = 20

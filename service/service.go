@@ -136,6 +136,9 @@ func (a *Service) GameOver(roomId string) {
 			room.Players[1].Rank = 2
 			room.Players[2].Score = global.Loser
 			room.Players[2].Rank = 3
+			if room.Players[2].Guess == -99 {
+				room.Players[2].Rank = -1
+			}
 			break
 		}
 	}
@@ -149,6 +152,15 @@ func (a *Service) AllGuessDone(roomId string) bool {
 		}
 	}
 	return true
+}
+
+func (a *Service) CheckGuess(id string) {
+	p, _ := a.repo.GetPlayerById(id)
+	if p.Guess == -1 {
+		p.Guess = -99
+		p.Diff = 99
+		a.repo.Update(p)
+	}
 }
 
 type sortByDiff []*model.Player
